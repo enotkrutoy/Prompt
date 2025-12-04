@@ -5,7 +5,8 @@ const getClient = (): GoogleGenAI => {
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    throw new Error("API Key not found. Please set API_KEY in your environment variables.");
+    console.error("API Key is missing in environment variables.");
+    throw new Error("API Key not found. Please set API_KEY in your .env file or environment variables.");
   }
   return new GoogleGenAI({ apiKey });
 };
