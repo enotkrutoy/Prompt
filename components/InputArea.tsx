@@ -62,6 +62,24 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, onHeightChange
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+            e.preventDefault();
+            const blob = items[i].getAsFile();
+            if (blob) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setSelectedImage(reader.result as string);
+                };
+                reader.readAsDataURL(blob);
+            }
+            return; // Stop checking after finding the first image
+        }
+    }
+  };
+
   const insertUrlPlaceholder = () => {
     const url = prompt("Введите URL (ссылку на сайт, документацию, GitHub):");
     if (url) {
@@ -142,7 +160,8 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, onHeightChange
                     adjustHeight();
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={selectedImage ? "Добавьте описание..." : "Запрос, ссылка или файл..."}
+                onPaste={handlePaste}
+                placeholder={selectedImage ? "Добавьте описание..." : "Запрос, ссылка, файл или Ctrl+V"}
                 className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[150px] min-h-[24px] py-1 text-base leading-relaxed text-white placeholder-gray-500 outline-none no-scrollbar"
                 rows={1}
                 disabled={isLoading}
