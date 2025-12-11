@@ -16,3 +16,12 @@ export interface IterationStatus {
   currentStep: string;
   isComplete: boolean;
 }
+
+// Global declaration for Telegram WebApp
+declare global {
+  interface Window {
+    Telegram: {
+      WebApp: any; // Using 'any' or specific types from @types/telegram-web-app
+    };
+  }
+}

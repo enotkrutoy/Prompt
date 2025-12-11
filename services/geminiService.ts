@@ -1,4 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { EXPERT_SYSTEM_PROMPT } from '../constants';
 
 const getClient = (): GoogleGenAI => {
@@ -33,16 +33,14 @@ export const sendMessageToGemini = async (
     // Convert internal message format to API format
     // We need to properly format history to include images if they existed in previous turns
     const formattedHistory = history.map(msg => {
-      const parts: any[] = [{ text: msg.text }];
+      const parts: any[] = [];
       
       if (msg.image) {
         // Extract base64 data and mimeType
         // Assuming standard format: "data:image/jpeg;base64,..."
         const match = msg.image.match(/^data:(image\/[a-z]+);base64,(.+)$/);
         if (match) {
-           // Insert image BEFORE text for better context understanding in most cases, 
-           // though Gemini handles both orderings.
-           parts.unshift({
+           parts.push({
              inlineData: {
                mimeType: match[1],
                data: match[2]
@@ -50,6 +48,15 @@ export const sendMessageToGemini = async (
            });
         }
       }
+
+      // Only add text part if it's not empty, OR if it's the only part (to avoid empty content error)
+      if (msg.text && msg.text.trim() !== "") {
+        parts.push({ text: msg.text });
+      } else if (parts.length === 0) {
+        // If we have no image and empty text, we must provide something, though this shouldn't happen in valid history
+        parts.push({ text: " " }); 
+      }
+
       return {
         role: msg.role === 'user' ? 'user' : 'model',
         parts: parts
@@ -65,17 +72,25 @@ export const sendMessageToGemini = async (
         systemInstruction: EXPERT_SYSTEM_PROMPT,
         temperature: 0.7,
         // Enable Google Search Grounding to handle URLs in user prompt
-        tools: [{ googleSearch: {} }] 
+        tools: [{ googleSearch: {} }],
+        // Relax safety settings for Red Team/Analysis use cases
+        safetySettings: [
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+        ]
       },
       history: optimizedHistory,
     });
 
     // Prepare current message parts
-    const currentParts: any[] = [{ text: userMessage }];
+    const currentParts: any[] = [];
+    
     if (image) {
         const match = image.match(/^data:(image\/[a-z]+);base64,(.+)$/);
         if (match) {
-            currentParts.unshift({
+            currentParts.push({
                 inlineData: {
                     mimeType: match[1],
                     data: match[2]
@@ -84,15 +99,46 @@ export const sendMessageToGemini = async (
         }
     }
 
+    if (userMessage && userMessage.trim() !== "") {
+        currentParts.push({ text: userMessage });
+    } else if (currentParts.length === 0) {
+        throw new Error("Сообщение не может быть пустым.");
+    }
+
     // Since chat.sendMessage takes a string or parts, and we might have image + text,
     // we use the generic payload structure.
     const response: GenerateContentResponse = await chat.sendMessage({
       message: currentParts.length === 1 && currentParts[0].text ? currentParts[0].text : currentParts,
     });
 
+    // Check candidates for safety finish reasons
+    if (response.candidates && response.candidates[0]) {
+        const candidate = response.candidates[0];
+        if (candidate.finishReason === 'SAFETY') {
+             throw new Error("Ответ модели заблокирован настройками безопасности. Попробуйте переформулировать запрос.");
+        }
+        if (candidate.finishReason === 'RECITATION') {
+             throw new Error("Ответ заблокирован из-за повторения защищенного контента (Recitation).");
+        }
+        if (candidate.finishReason === 'OTHER') {
+             console.warn("Model finished with reason OTHER", candidate);
+        }
+    }
+
     let responseText = response.text;
+    
+    // Fallback: If no text but we have candidates, try to see if there's anything else useful or a specific error state
+    if (!responseText && response.candidates && response.candidates.length > 0) {
+        // Sometimes text might be in parts but .text getter fails? Unlikely with SDK, but possible if mixed content.
+        const parts = response.candidates[0].content?.parts;
+        if (parts && parts.length > 0) {
+            responseText = parts.map((p: any) => p.text || '').join('');
+        }
+    }
+
     if (!responseText) {
-        throw new Error("Пустой ответ от модели.");
+        console.error("Empty response received. Full response object:", JSON.stringify(response, null, 2));
+        throw new Error("Пустой ответ от модели. Возможно, запрос слишком сложный или нарушает политики.");
     }
 
     // Extract and append grounding sources if available, as per guidelines

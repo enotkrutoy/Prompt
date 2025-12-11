@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Эксперт Промптов</title>
+    <!-- Telegram Web App Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -12,6 +14,7 @@
         background-color: #000000;
         color: #FFFFFF;
         -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
       }
       .no-scrollbar::-webkit-scrollbar {
           display: none;
@@ -25,6 +28,7 @@
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
       }
+      /* Custom scrollbar optimized for dark mode */
       ::-webkit-scrollbar {
         width: 6px;
       }
@@ -39,19 +43,19 @@
         background: #555;
       }
     </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "react": "https://aistudiocdn.com/react@^19.2.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.7",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.2",
     "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
-    "remark-gfm": "https://aistudiocdn.com/remark-gfm@^4.0.1",
     "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
     "d3": "https://aistudiocdn.com/d3@^7.9.0",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
+    "remark-gfm": "https://aistudiocdn.com/remark-gfm@^4.0.1"
   }
 }
 </script>

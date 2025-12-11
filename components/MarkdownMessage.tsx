@@ -1,9 +1,45 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 interface MarkdownMessageProps {
   content: string;
+}
+
+const CopyButton = ({ text }: { text: string }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <button 
+            onClick={handleCopy}
+            className={`
+                flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium transition-all
+                ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white'}
+            `}
+        >
+            {copied ? (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    Скопировано
+                </>
+            ) : (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+                    </svg>
+                    Копировать
+                </>
+            )}
+        </button>
+    );
 }
 
 const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => {
@@ -29,17 +65,23 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => {
           ),
           code({node, inline, className, children, ...props}: any) {
             const match = /language-(\w+)/.exec(className || '');
+            const codeString = String(children).replace(/\n$/, '');
+
             return !inline ? (
               <div className="relative group my-4 rounded-xl overflow-hidden border border-gray-700 shadow-2xl">
                  <div className="flex items-center justify-between bg-[#2C2C2E] px-4 py-2 border-b border-gray-700">
-                    <div className="flex space-x-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                    <div className="flex items-center gap-3">
+                        <div className="flex space-x-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+                        </div>
+                        <span className="text-xs text-gray-400 font-mono font-bold tracking-wider">
+                          {match ? match[1].toUpperCase() : 'TEXT'}
+                        </span>
                     </div>
-                    <span className="text-xs text-gray-400 font-mono">
-                      {match ? match[1].toUpperCase() : 'TEXT'}
-                    </span>
+                    {/* Add Copy Button Here */}
+                    <CopyButton text={codeString} />
                  </div>
                 <pre className="block bg-[#121212] text-gray-100 p-4 overflow-x-auto text-sm font-mono scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                   <code className={className} {...props}>

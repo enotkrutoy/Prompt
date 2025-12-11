@@ -125,6 +125,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     window.open(url, '_blank');
   };
 
+  const handleVisualize = (text: string) => {
+    // Try to extract just the system prompt first for a cleaner graph
+    const prompt = extractFinalPrompt(text);
+    if (prompt) {
+        setVisualizeContent(prompt);
+    } else {
+        // If no structured prompt found, visualize the whole text but warn user conceptually
+        setVisualizeContent(text);
+    }
+  };
+
   // --- Modal Logic ---
   const handleModalClose = () => {
       setIsUploadModalOpen(false);
@@ -221,7 +232,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               Загрузите фото, рентген, документ или <strong>ссылку</strong>. Я создам промпт, который умеет работать с этими данными.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-4xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
               {EXAMPLES.map((ex, idx) => (
                 <button
                   key={idx}
@@ -318,7 +329,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   </button>
 
                   <button
-                    onClick={() => setVisualizeContent(msg.text)}
+                    onClick={() => handleVisualize(msg.text)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2C2C2E] hover:bg-[#3A3A3C] border border-white/10 text-xs font-medium text-purple-400 hover:text-purple-300 transition-all shadow-lg active:scale-95"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
